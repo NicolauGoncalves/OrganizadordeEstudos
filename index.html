@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador de Estudos | Branta INTL School</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        header {
+            background: linear-gradient(to right, #003366, #0066cc);
+            padding: 20px;
+            color: #fff;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        header img {
+            max-width: 150px;
+            display: block;
+            margin: auto;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #004999;
+        }
+        input, select {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 80%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background: #003366;
+            color: white;
+        }
+        canvas {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        .delete-btn {
+            background: #cc0000;
+            padding: 5px;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background: #990000;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="logo.png" alt="Branta INTL School">
+        <h1>Organizador de Estudos</h1>
+    </header>
+
+    <div class="container">
+        <h3>📚 Definir Matérias e Metas</h3>
+        <input type="text" id="materia" placeholder="Nome da Matéria">
+        <input type="number" id="meta" placeholder="Horas/semana">
+        <button onclick="adicionarMateria()">Adicionar</button>
+
+        <h3>📅 Cronograma Semanal</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Matéria</th>
+                    <th>Meta (horas)</th>
+                    <th>Estudado</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaEstudos"></tbody>
+        </table>
+
+        <h3>📌 Registrar Estudos</h3>
+        <select id="selecionarMateria"></select>
+        <input type="number" id="horasEstudo" min="0.5" step="0.5" placeholder="Horas estudadas">
+        <button onclick="registrarEstudo()">Registrar</button>
+
+        <h3>📊 Progresso Semanal</h3>
+        <canvas id="graficoEstudos"></canvas>
+        <button onclick="resetarEstudos()" style="margin-top: 15px; background: #cc0000;">Resetar Tudo</button>
+    </div>
+
+    <script>
+        let estudos = JSON.parse(localStorage.getItem("estudos")) || {};
+
+        function adicionarMateria() {
+            let materia = document.getElementById("materia").value;
+            let meta = parseInt(document.getElementById("meta").value);
+
+            if (!materia || isNaN(meta) || meta <= 0) {
+                alert("Preencha os campos corretamente!");
+                return;
+            }
+
+            estudos[materia] = { meta: meta, estudado: 0 };
+            salvarDados();
+            atualizarTabela();
+            atualizarDropdown();
+        }
+
+        function registrarEstudo() {
+            let materia = document.getElementById("selecionarMateria").value;
+            let horas = parseFloat(document.getElementById("horasEstudo").value);
+
+            if (!materia || isNaN(horas) || horas <= 0) {
+                alert("Insira um valor válido para as horas estudadas.");
+                return;
+            }
+
+            estudos[materia].estudado += horas;
+            salvarDados();
+            atualizarTabela();
+            atualizarGrafico();
+        }
+
+        function deletarMateria(materia) {
+            delete estudos[materia];
+            salvarDados();
+            atualizarTabela();
+            atualizarDropdown();
+            atualizarGrafico();
+        }
+
+        function resetarEstudos() {
+            if (confirm("Tem certeza que deseja resetar todos os dados?")) {
+                estudos = {};
+                salvarDados();
+                atualizarTabela();
+                atualizarDropdown();
+                atualizarGrafico();
+            }
+        }
+
+        function salvarDados() {
+            localStorage.setItem("estudos", JSON.stringify(estudos));
+        }
+
+        function atualizarTabela() {
+            let tabela = document.getElementById("tabelaEstudos");
+            tabela.innerHTML = "";
+
+            for (let materia in estudos) {
+                let linha = `<tr>
+                    <td>${materia}</td>
+                    <td>${estudos[materia].meta}h</td>
+                    <td>${estudos[materia].estudado}h</td>
+                    <td><button class="delete-btn" onclick="deletarMateria('${materia}')">❌</button></td>
+                </tr>`;
+                tabela.innerHTML += linha;
+            }
+        }
+
+        function atualizarDropdown() {
+            let dropdown = document.getElementById("selecionarMateria");
+            dropdown.innerHTML = "";
+            for (let materia in estudos) {
+                let option = `<option value="${materia}">${materia}</option>`;
+                dropdown.innerHTML += option;
+            }
+        }
+
+        function atualizarGrafico() {
+            let ctx = document.getElementById("graficoEstudos").getContext("2d");
+            let labels = Object.keys(estudos);
+            let data = Object.values(estudos).map(item => item.estudado);
+
+            if (window.grafico) {
+                window.grafico.destroy();
+            }
+
+            window.grafico = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Horas Estudadas",
+                        data: data,
+                        backgroundColor: "#0066cc"
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+
+        atualizarTabela();
+        atualizarDropdown();
+        atualizarGrafico();
+    </script>
+
+</body>
+</html>
